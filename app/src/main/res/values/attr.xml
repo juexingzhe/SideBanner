@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="SideBanner">
+        <attr name="side_mode" format="boolean"/>
+        <attr name="loop" format="boolean"/>
+        <attr name="indicator" format="boolean"/>
+    </declare-styleable>
+</resources>
