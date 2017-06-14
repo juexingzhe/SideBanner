@@ -7,5 +7,7 @@
         <attr name="indicator" format="boolean"/>
         <attr name="page_margin" format="dimension"/>
         <attr name="dot_margin" format="dimension"/>
+        <attr name="indicator_back_normal" format="reference"/>
+        <attr name="indicator_back_selected" format="reference"/>
     </declare-styleable>
 </resources>

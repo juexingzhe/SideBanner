@@ -20,5 +20,7 @@
         app:indicator="true"
         app:loop="true"
         app:page_margin="15dp"
-        app:side_mode="true"/>
+        app:side_mode="true"
+        app:indicator_back_normal = "@drawable/indicator_normal"
+        app:indicator_back_selected="@drawable/indicator_selected"/>
 </RelativeLayout>

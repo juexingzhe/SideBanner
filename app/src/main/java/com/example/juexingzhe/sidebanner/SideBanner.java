@@ -35,12 +35,11 @@ import java.util.List;
  * 4.数据量1个的情况下默认配置非Banner，根据数据动态改变布局，最后显示只类似ImageView
  * 5.可改变ViewPager页片的显示布局，通过SideViewHolder配置，默认提供ImageSideViewHolder
  * TODO:
- * 2.提供默认SideViewHolder -- ImageSideViewHolder
- * 3.配置ViewPager切换速度
- * 4.应用不可见时停止轮播
+ * 1.Builder
+ * 2.可配置不同布局和数据
  */
 
-public class SideBanner extends RelativeLayout {
+public class SideBanner<T> extends RelativeLayout {
 
     private static final int SCREEN_PAGE_LIMIT = 2;
     private static final int SCROLLER_DURATION_TIME = 800;     //设置切换速度
@@ -57,6 +56,8 @@ public class SideBanner extends RelativeLayout {
     private boolean mIndicator;
     private int mPageMargin;
     private int mDotMargin;
+    private int mIndicatorBackNormal;
+    private int mIndicatorBackSelected;
 
     private ViewPager mViewPager;
     private LinearLayout mIndicatorContainer;
@@ -65,7 +66,7 @@ public class SideBanner extends RelativeLayout {
     private Handler mHandler;
 
     private BannerAdapter mBannerAdapter;
-    private List<Integer> mInfos;
+    private List<T> mInfos;
 
     //status
     private int mCurrentPos;
@@ -112,6 +113,8 @@ public class SideBanner extends RelativeLayout {
 
         if (mIndicator) {
             mDotMargin = typedArray.getDimensionPixelSize(R.styleable.SideBanner_dot_margin, DOT_MARGIN);
+            mIndicatorBackNormal = typedArray.getResourceId(R.styleable.SideBanner_indicator_back_normal, R.drawable.indicator_normal);
+            mIndicatorBackSelected = typedArray.getResourceId(R.styleable.SideBanner_indicator_back_selected, R.drawable.indicator_selected);
         }
 
         if (!mLoop) {//如果不能循环则停止自动banner效果
@@ -176,7 +179,7 @@ public class SideBanner extends RelativeLayout {
         mDotMargin = dotMargin;
     }
 
-    public void setPages(List<Integer> datas, SideViewHolderCreator sideViewHolderCreator) {
+    public void setPages(List<T> datas, SideViewHolderCreator sideViewHolderCreator) {
         mInfos = datas;
 
         mBannerAdapter = new BannerAdapter(datas, sideViewHolderCreator);
@@ -252,9 +255,9 @@ public class SideBanner extends RelativeLayout {
         int realPosition = mCurrentPos % mIndicatorContainer.getChildCount();
 
         for (int i = 0; i < mIndicatorContainer.getChildCount(); i++) {
-            mIndicatorList.get(i).setImageResource(R.drawable.indicator_normal);
+            mIndicatorList.get(i).setImageResource(mIndicatorBackNormal);
             if (i == realPosition) {
-                mIndicatorList.get(i).setImageResource(R.drawable.indicator_selected);
+                mIndicatorList.get(i).setImageResource(mIndicatorBackSelected);
             }
         }
     }
@@ -269,9 +272,9 @@ public class SideBanner extends RelativeLayout {
             ImageView imageView = new ImageView(getContext());
 
             if (i == mCurrentPos % mInfos.size()) {
-                imageView.setImageResource(R.drawable.indicator_selected);
+                imageView.setImageResource(mIndicatorBackSelected);
             } else {
-                imageView.setImageResource(R.drawable.indicator_normal);
+                imageView.setImageResource(mIndicatorBackNormal);
             }
 
             LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -383,16 +386,19 @@ public class SideBanner extends RelativeLayout {
 
     private class BannerAdapter extends PagerAdapter {
 
-        private List<Integer> mDatas;
+        private List<T> mDatas;
 
         private SideViewHolder mSideViewHolder;
 
-        public BannerAdapter(List<Integer> datas, SideViewHolderCreator sideViewHolderCreator) {
+        public BannerAdapter(List<T> datas, SideViewHolderCreator sideViewHolderCreator) {
 
             mDatas = new ArrayList<>();
 
             mDatas.addAll(datas);
 
+            if (sideViewHolderCreator == null) {
+                mSideViewHolder = new ImageSideViewHolder();
+            }
             mSideViewHolder = sideViewHolderCreator.createSideViewHolder();
         }
 
@@ -497,6 +503,19 @@ public class SideBanner extends RelativeLayout {
 
     public interface BannerClickListener {
         void onPageClick(View view, int position);
+    }
+
+    public interface SideBannerAdapter {
+        /**
+         * 获取数据个数
+         *
+         * @return
+         */
+        int getCount();
+
+
+
+
     }
 
 }
