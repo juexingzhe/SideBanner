@@ -3,6 +3,9 @@
     <declare-styleable name="SideBanner">
         <attr name="side_mode" format="boolean"/>
         <attr name="loop" format="boolean"/>
+        <attr name="autoPlay" format="boolean"/>
         <attr name="indicator" format="boolean"/>
+        <attr name="page_margin" format="dimension"/>
+        <attr name="dot_margin" format="dimension"/>
     </declare-styleable>
 </resources>
