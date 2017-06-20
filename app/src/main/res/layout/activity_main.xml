@@ -12,7 +12,22 @@
                 tools:context="com.example.juexingzhe.sidebanner.MainActivity">
 
     <com.example.juexingzhe.sidebanner.SideBanner
-        android:id="@+id/side_banner"
+        android:id="@+id/side_banner_image"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        app:autoPlay="true"
+        app:dot_margin="20dp"
+        app:indicator="true"
+        app:loop="true"
+        app:page_margin="15dp"
+        app:side_mode="true"
+        app:indicator_back_normal = "@drawable/indicator_normal"
+        app:indicator_back_selected="@drawable/indicator_selected"/>
+
+    <com.example.juexingzhe.sidebanner.SideBanner
+        android:layout_marginTop="20dp"
+        android:layout_below="@id/side_banner_image"
+        android:id="@+id/side_banner_text"
         android:layout_width="match_parent"
         android:layout_height="200dp"
         app:autoPlay="true"

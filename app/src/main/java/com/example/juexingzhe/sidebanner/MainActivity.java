@@ -8,72 +8,140 @@ import android.widget.Toast;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
-    public static final int[] RES = new int[]{R.mipmap.image1,R.mipmap.image2,R.mipmap.image3};
+    public static final int[] RES = new int[]{R.mipmap.image1};
     public static final String[] TEXT_RES = new String[]{"Hello", "LLN"};
 
-    private SideBanner mSideBanner;
-
-    private ArrayList<Integer> mDatas;
-    private ArrayList<String> mStringDatas;
+    private SideBanner mSideBannerImage;
+    private SideBanner mSideBannerText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mSideBanner = (SideBanner) findViewById(R.id.side_banner);
-        mDatas = new ArrayList();
-        mStringDatas = new ArrayList();
+        mSideBannerImage = (SideBanner) findViewById(R.id.side_banner_image);
+        mSideBannerText = (SideBanner)findViewById(R.id.side_banner_text);
+
+        final ArrayList<Integer> datas = new ArrayList();
+        final ArrayList<String> stringDatas = new ArrayList();
         for (int i = 0; i < RES.length; i++){
-            mDatas.add(RES[i]);
+            datas.add(RES[i]);
         }
 
         for (int i = 0; i < TEXT_RES.length; i++){
-            mStringDatas.add(TEXT_RES[i]);
+            stringDatas.add(TEXT_RES[i]);
         }
 
-//        mSideBanner.setPages(mDatas, new SideViewHolderCreator() {
-//            @Override
-//            public SideViewHolder createSideViewHolder() {
-//                return new ImageSideViewHolder();
-//            }
-//        });
-        mSideBanner.setPages(mStringDatas, new SideViewHolderCreator() {
+        mSideBannerImage.setSideBannerAdapter(new SideBanner.SideBannerAdapter() {
             @Override
-            public SideViewHolder createSideViewHolder() {
-                return new TextViewSideViewHolder();
+            public int getCount() {
+                return datas.size();
             }
-        });
 
-        mSideBanner.setBannerClickListener(new SideBanner.BannerClickListener() {
             @Override
             public void onPageClick(View view, int position) {
                 Toast.makeText(MainActivity.this, "点击了" + String.valueOf(position), Toast.LENGTH_LONG).show();
             }
+
+            @Override
+            public SideViewHolderCreator getSideViewHolderCreator() {
+                return new SideViewHolderCreator(){
+
+                    @Override
+                    public SideViewHolder createSideViewHolder() {
+                        return new ImageSideViewHolder();
+                    }
+                };
+            }
+
+            @Override
+            public Object getItemData(int position) {
+                return datas.get(position);
+            }
         });
+
+//        mSideBannerImage.setPages(datas, new SideViewHolderCreator() {
+//            @Override
+//            public SideViewHolder createSideViewHolder() {
+//                return new ImageSideViewHolder();
+//            }
+//        }).setBannerClickListener(new SideBanner.BannerClickListener() {
+//            @Override
+//            public void onPageClick(View view, int position) {
+//                Toast.makeText(MainActivity.this, "点击了" + String.valueOf(position), Toast.LENGTH_LONG).show();
+//            }
+//        });
+
+        mSideBannerText.setSideBannerAdapter(new SideBanner.SideBannerAdapter() {
+            @Override
+            public int getCount() {
+                return stringDatas.size();
+            }
+
+            @Override
+            public void onPageClick(View view, int position) {
+                Toast.makeText(MainActivity.this, "点击了" + String.valueOf(position), Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public SideViewHolderCreator getSideViewHolderCreator() {
+                return new SideViewHolderCreator() {
+                    @Override
+                    public SideViewHolder createSideViewHolder() {
+                        return new TextViewSideViewHolder();
+                    }
+                };
+            }
+
+            @Override
+            public Object getItemData(int position) {
+                return stringDatas.get(position);
+            }
+        });
+
+//        mSideBannerText.setPages(stringDatas, new SideViewHolderCreator() {
+//            @Override
+//            public SideViewHolder createSideViewHolder() {
+//                return new TextViewSideViewHolder();
+//            }
+//        }).setBannerClickListener(new SideBanner.BannerClickListener() {
+//            @Override
+//            public void onPageClick(View view, int position) {
+//                Toast.makeText(MainActivity.this, "点击了" + String.valueOf(position), Toast.LENGTH_LONG).show();
+//            }
+//        });
 
     }
 
     @Override
     protected void onPause() {
-        if (mSideBanner!=null){
-            mSideBanner.stopPlay();
+        if (mSideBannerImage !=null){
+            mSideBannerImage.stopPlay();
+        }
+        if (mSideBannerText != null){
+            mSideBannerText.stopPlay();
         }
         super.onPause();
     }
 
     @Override
     protected void onResume() {
-        if (mSideBanner != null){
-            mSideBanner.startPlay();
+        if (mSideBannerImage != null){
+            mSideBannerImage.startPlay();
+        }
+        if (mSideBannerText != null){
+            mSideBannerText.startPlay();
         }
         super.onResume();
     }
 
     @Override
     protected void onDestroy() {
-        if (mSideBanner != null){
-            mSideBanner.stopPlay();
+        if (mSideBannerImage != null){
+            mSideBannerImage.stopPlay();
+        }
+        if (mSideBannerText != null){
+            mSideBannerText.stopPlay();
         }
         super.onDestroy();
     }

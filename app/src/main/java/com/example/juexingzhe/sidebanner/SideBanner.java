@@ -21,9 +21,7 @@ import android.widget.Scroller;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
 
 /**
  * Created by juexingzhe on 2017/6/13.
@@ -34,9 +32,8 @@ import java.util.List;
  * 3.可配置切换速度
  * 4.数据量1个的情况下默认配置非Banner，根据数据动态改变布局，最后显示只类似ImageView
  * 5.可改变ViewPager页片的显示布局，通过SideViewHolder配置，默认提供ImageSideViewHolder
+ * 6.起始位置不能设置0，容易滑到头导致没有轮播的效果(要同时更新mCurrentPos，否则直接setCurrentItem会ANR)
  * TODO:
- * 1.Builder
- * 2.可配置不同布局和数据
  */
 
 public class SideBanner<T> extends RelativeLayout {
@@ -45,7 +42,7 @@ public class SideBanner<T> extends RelativeLayout {
     private static final int SCROLLER_DURATION_TIME = 800;     //设置切换速度
     private static final int PAGE_MARGIN = 20;
     private static final int DOT_MARGIN = 8;
-    private static final int BANNER_DELAY_TIME = 3000;
+    private static final int BANNER_DELAY_TIME = 3000;        //设置轮播速度
     private static final int BANNER_MOVE_NEXT_ITEM = 0x102;
     private static final int BANNER_MARGIN = 5;
 
@@ -66,7 +63,6 @@ public class SideBanner<T> extends RelativeLayout {
     private Handler mHandler;
 
     private BannerAdapter mBannerAdapter;
-    private List<T> mInfos;
 
     //status
     private int mCurrentPos;
@@ -75,8 +71,7 @@ public class SideBanner<T> extends RelativeLayout {
     //Scroller
     private SideBannerScroller mSideBannerScroller;
 
-    //ClickListener
-    private BannerClickListener mBannerClickListener;
+    private SideBannerAdapter mSideBannerAdapter;
 
 
     public SideBanner(Context context) {
@@ -120,13 +115,13 @@ public class SideBanner<T> extends RelativeLayout {
         if (!mLoop) {//如果不能循环则停止自动banner效果
             mAutoPlay = false;
         }
+        typedArray.recycle();
     }
 
     private void init() {
-        View view;
-        mInfos = new ArrayList<>();
         mIndicatorList = new LinkedList<>();
 
+        View view;
         if (mSideMode) {
             view = LayoutInflater.from(getContext()).inflate(R.layout.side_banner, this, true);
         } else {
@@ -143,7 +138,6 @@ public class SideBanner<T> extends RelativeLayout {
         setBannerScroll();
         setPageTransformer();
         setPlayHandler();
-
     }
 
     public void setSideMode(boolean mSideMode) {
@@ -168,47 +162,33 @@ public class SideBanner<T> extends RelativeLayout {
     }
 
     public void setAutoPlay(boolean autoPlay) {
-        mAutoPlay = autoPlay;
+        this.mAutoPlay = autoPlay;
     }
 
     public void setPageMargin(int pageMargin) {
-        mPageMargin = pageMargin;
+        this.mPageMargin = pageMargin;
     }
 
     public void setDotMargin(int dotMargin) {
-        mDotMargin = dotMargin;
+        this.mDotMargin = dotMargin;
     }
 
-    public void setPages(List<T> datas, SideViewHolderCreator sideViewHolderCreator) {
-        mInfos = datas;
+    public void setSideBannerAdapter(SideBannerAdapter sideBannerAdapter) {
+        this.mSideBannerAdapter = sideBannerAdapter;
+        setPages();
+    }
 
-        mBannerAdapter = new BannerAdapter(datas, sideViewHolderCreator);
+    /**
+     * 设置数据、布局与绑定数据
+     */
+    private void setPages() {
+        mBannerAdapter = new BannerAdapter(mSideBannerAdapter.getSideViewHolderCreator());
 
-        if (datas.size() == 1) {
+        if (mSideBannerAdapter.getCount() == 1) {
             processDatasSizeLess();
         }
 
-        //ViewPager
-        mViewPager.setAdapter(mBannerAdapter);
-        mViewPager.setCurrentItem(0);
-        mViewPager.setPageMargin(mPageMargin);
-        mViewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
-            @Override
-            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-
-            }
-
-            @Override
-            public void onPageSelected(int position) {
-                mCurrentPos = position;
-                setIndicatorStatus();
-            }
-
-            @Override
-            public void onPageScrollStateChanged(int state) {
-
-            }
-        });
+        initViewPager();
 
         //Indicator
         initIndicators();
@@ -230,15 +210,14 @@ public class SideBanner<T> extends RelativeLayout {
         removeAllMessages();
     }
 
+    /**
+     * 设置手动滑动切换速度
+     *
+     * @param time
+     */
     public void setBannerScrollerSpeed(int time) {
         mSideBannerScroller.setScrollDuration(time);
     }
-
-
-    public void setBannerClickListener(BannerClickListener bannerClickListener) {
-        this.mBannerClickListener = bannerClickListener;
-    }
-
 
     /**
      * 数据只有1个情况
@@ -250,7 +229,10 @@ public class SideBanner<T> extends RelativeLayout {
         mBannerAdapter.notifyDataSetChanged();
     }
 
-    private void setIndicatorStatus() {
+    /**
+     * 更新指示点
+     */
+    private void updateIndicatorStatus() {
         if (!mIndicator) return;
         int realPosition = mCurrentPos % mIndicatorContainer.getChildCount();
 
@@ -262,16 +244,40 @@ public class SideBanner<T> extends RelativeLayout {
         }
     }
 
+    private void initViewPager() {
+        //ViewPager
+        mViewPager.setAdapter(mBannerAdapter);
+        mCurrentPos = mBannerAdapter.getStartItem();
+        mViewPager.setCurrentItem(mCurrentPos);
+
+        mViewPager.setPageMargin(mPageMargin);
+        mViewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                mCurrentPos = position;
+                updateIndicatorStatus();
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+            }
+        });
+    }
+
     private void initIndicators() {
         if (!mIndicator) return;
 
         mIndicatorContainer.removeAllViews();
         mIndicatorList.clear();
 
-        for (int i = 0; i < mInfos.size(); i++) {
+        for (int i = 0; i < mSideBannerAdapter.getCount(); i++) {
             ImageView imageView = new ImageView(getContext());
 
-            if (i == mCurrentPos % mInfos.size()) {
+            if (i == mCurrentPos % mSideBannerAdapter.getCount()) {
                 imageView.setImageResource(mIndicatorBackSelected);
             } else {
                 imageView.setImageResource(mIndicatorBackNormal);
@@ -287,6 +293,9 @@ public class SideBanner<T> extends RelativeLayout {
 
     }
 
+    /**
+     * 设置Banner轮播速度
+     */
     private void setBannerScroll() {
         try {
             Field mScroller = ViewPager.class.getDeclaredField("mScroller");
@@ -319,7 +328,7 @@ public class SideBanner<T> extends RelativeLayout {
         mHandler.removeMessages(BANNER_MOVE_NEXT_ITEM);
     }
 
-    class BannerHandler extends Handler {
+    private class BannerHandler extends Handler {
         private WeakReference<ViewPager> mWeakReference;
 
         public BannerHandler(ViewPager viewPager) {
@@ -385,26 +394,18 @@ public class SideBanner<T> extends RelativeLayout {
     }
 
     private class BannerAdapter extends PagerAdapter {
-
-        private List<T> mDatas;
-
         private SideViewHolder mSideViewHolder;
 
-        public BannerAdapter(List<T> datas, SideViewHolderCreator sideViewHolderCreator) {
-
-            mDatas = new ArrayList<>();
-
-            mDatas.addAll(datas);
-
+        public BannerAdapter(SideViewHolderCreator sideViewHolderCreator) {
             if (sideViewHolderCreator == null) {
                 mSideViewHolder = new ImageSideViewHolder();
+                return;
             }
             mSideViewHolder = sideViewHolderCreator.createSideViewHolder();
         }
 
         @Override
         public int getCount() {
-            //return mDatas.size() + (mLoop ? FOR_LOOP : 0);
             return mLoop ? Integer.MAX_VALUE : getRealCount();
         }
 
@@ -425,7 +426,21 @@ public class SideBanner<T> extends RelativeLayout {
 //            return position - 1;
 //        }
         private int getRealCount() {
-            return mDatas == null ? 0 : mDatas.size();
+            return mSideBannerAdapter.getCount();
+        }
+
+        /**
+         * 设置起始位置
+         */
+        private int getStartItem() {
+            if (!mLoop) {
+                return 0;
+            }
+
+            int pos = Integer.MAX_VALUE / 2;
+            int remainder = pos % getRealCount();
+
+            return pos - remainder;
         }
 
 
@@ -454,8 +469,8 @@ public class SideBanner<T> extends RelativeLayout {
             view.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (mBannerClickListener != null) {
-                        mBannerClickListener.onPageClick(v, position);
+                    if (mSideBannerAdapter != null) {
+                        mSideBannerAdapter.onPageClick(v, position % getRealCount());
                     }
                 }
             });
@@ -464,7 +479,8 @@ public class SideBanner<T> extends RelativeLayout {
 
         private void bindView(ViewGroup container, int position) {
             int realPosition = position % getRealCount();
-            mSideViewHolder.onBind(container.getContext(), realPosition, mDatas.get(realPosition));
+            //mSideViewHolder.onBind(container.getContext(), realPosition, mDatas.get(realPosition));
+            mSideViewHolder.onBind(container.getContext(), realPosition, mSideBannerAdapter.getItemData(realPosition));
         }
 
         @Override
@@ -501,10 +517,6 @@ public class SideBanner<T> extends RelativeLayout {
         return super.dispatchTouchEvent(ev);
     }
 
-    public interface BannerClickListener {
-        void onPageClick(View view, int position);
-    }
-
     public interface SideBannerAdapter {
         /**
          * 获取数据个数
@@ -513,8 +525,26 @@ public class SideBanner<T> extends RelativeLayout {
          */
         int getCount();
 
+        /**
+         * ClickListener
+         *
+         * @param view
+         * @param position
+         */
+        void onPageClick(View view, int position);
 
+        /**
+         * @return Holder Creator
+         */
+        SideViewHolderCreator getSideViewHolderCreator();
 
+        /**
+         * 单个数据
+         *
+         * @param position
+         * @return
+         */
+        Object getItemData(int position);
 
     }
 
