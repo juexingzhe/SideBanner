@@ -44,10 +44,10 @@ public class SideBanner<T> extends RelativeLayout {
     private static final int DOT_MARGIN = 8;
     private static final int BANNER_DELAY_TIME = 3000;        //设置轮播速度
     private static final int BANNER_MOVE_NEXT_ITEM = 0x102;
-    private static final int BANNER_MARGIN = 5;
+    private static final int NOT_BANNER_MARGIN = 5;
 
     //attr
-    private boolean mSideMode;
+    private boolean mSideMode = true;
     private boolean mLoop;
     private boolean mAutoPlay;
     private boolean mIndicator;
@@ -57,6 +57,7 @@ public class SideBanner<T> extends RelativeLayout {
     private int mIndicatorBackSelected;
 
     private ViewPager mViewPager;
+    private View view;
     private LinearLayout mIndicatorContainer;
 
     private LinkedList<ImageView> mIndicatorList;
@@ -119,9 +120,6 @@ public class SideBanner<T> extends RelativeLayout {
     }
 
     private void init() {
-        mIndicatorList = new LinkedList<>();
-
-        View view;
         if (mSideMode) {
             view = LayoutInflater.from(getContext()).inflate(R.layout.side_banner, this, true);
         } else {
@@ -132,10 +130,11 @@ public class SideBanner<T> extends RelativeLayout {
         mViewPager.setOffscreenPageLimit(SCREEN_PAGE_LIMIT);
 
         if (mIndicator) {
+            mIndicatorList = new LinkedList<>();
             mIndicatorContainer = (LinearLayout) view.findViewById(R.id.side_banner_indicator);
         }
 
-        setBannerScroll();
+        setBannerScroll(SCROLLER_DURATION_TIME);
         setPageTransformer();
         setPlayHandler();
     }
@@ -144,8 +143,8 @@ public class SideBanner<T> extends RelativeLayout {
         this.mSideMode = mSideMode;
         if (!mSideMode) {
             RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) mViewPager.getLayoutParams();
-            layoutParams.leftMargin = BANNER_MARGIN;
-            layoutParams.rightMargin = BANNER_MARGIN;
+            layoutParams.leftMargin = NOT_BANNER_MARGIN;
+            layoutParams.rightMargin = NOT_BANNER_MARGIN;
             mViewPager.setLayoutParams(layoutParams);
         }
     }
@@ -159,6 +158,9 @@ public class SideBanner<T> extends RelativeLayout {
 
     public void setIndicator(boolean mIndicator) {
         this.mIndicator = mIndicator;
+        if (mIndicator && mIndicatorContainer == null) {
+            mIndicatorContainer = (LinearLayout) view.findViewById(R.id.side_banner_indicator);
+        }
     }
 
     public void setAutoPlay(boolean autoPlay) {
@@ -171,6 +173,14 @@ public class SideBanner<T> extends RelativeLayout {
 
     public void setDotMargin(int dotMargin) {
         this.mDotMargin = dotMargin;
+    }
+
+    public void setIndicatorBackNormal(int indicatorBackNormal){
+        this.mIndicatorBackNormal = indicatorBackNormal;
+    }
+
+    public void setmIndicatorBackSelected(int indicatorBackSelected){
+        this.mIndicatorBackSelected = indicatorBackSelected;
     }
 
     public void setSideBannerAdapter(SideBannerAdapter sideBannerAdapter) {
@@ -216,7 +226,7 @@ public class SideBanner<T> extends RelativeLayout {
      * @param time
      */
     public void setBannerScrollerSpeed(int time) {
-        mSideBannerScroller.setScrollDuration(time);
+        setBannerScroll(time);
     }
 
     /**
@@ -296,13 +306,12 @@ public class SideBanner<T> extends RelativeLayout {
     /**
      * 设置Banner轮播速度
      */
-    private void setBannerScroll() {
+    private void setBannerScroll(int time) {
         try {
             Field mScroller = ViewPager.class.getDeclaredField("mScroller");
             mScroller.setAccessible(true);
-            mSideBannerScroller = new SideBannerScroller(mViewPager.getContext());
+            mSideBannerScroller = new SideBannerScroller(mViewPager.getContext(), time);
             mScroller.set(mViewPager, mSideBannerScroller);
-
         } catch (NoSuchFieldException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
@@ -507,6 +516,9 @@ public class SideBanner<T> extends RelativeLayout {
                 break;
             case MotionEvent.ACTION_UP:
                 if (mAutoPlay) {
+                    if (mHandler == null){
+                        setPlayHandler();
+                    }
                     mHandler.sendEmptyMessageDelayed(BANNER_MOVE_NEXT_ITEM, BANNER_DELAY_TIME);
                 }
                 break;
@@ -547,5 +559,106 @@ public class SideBanner<T> extends RelativeLayout {
         Object getItemData(int position);
 
     }
+
+    public static Builder builder(){
+        return new Builder();
+    }
+
+    public static class Builder{
+
+        private boolean sideMode;
+        private boolean loop;
+        private boolean autoPlay;
+        private boolean indicator;
+        private int pageMargin;
+        private int dotMargin;
+        private int indicatorBackNormal;
+        private int indicatorBackSelected;
+        private int durationtime;
+        private SideBannerAdapter sideBannerAdapter;
+
+        private SideBanner sideBanner;
+
+
+        public Builder(){
+            sideMode = true;
+            loop = true;
+            autoPlay = true;
+            indicator = true;
+            pageMargin = PAGE_MARGIN;
+            dotMargin = DOT_MARGIN;
+            indicatorBackNormal = R.drawable.indicator_normal;
+            indicatorBackSelected = R.drawable.indicator_selected;
+            durationtime = SCROLLER_DURATION_TIME;
+            sideBannerAdapter = null;
+        }
+
+        public Builder setSideMode(boolean sideMode) {
+            this.sideMode = sideMode;
+            return this;
+        }
+
+        public Builder setLoop(boolean loop) {
+            this.loop = loop;
+            return this;
+        }
+
+        public Builder setAutoPlay(boolean autoPlay) {
+            this.autoPlay = autoPlay;
+            return this;
+        }
+
+        public Builder setIndicator(boolean indicator) {
+            this.indicator = indicator;
+            return this;
+        }
+
+        public Builder setPageMargin(int pageMargin) {
+            this.pageMargin = pageMargin;
+            return this;
+        }
+
+        public Builder setDotMargin(int dotMargin) {
+            this.dotMargin = dotMargin;
+            return this;
+        }
+
+        public Builder setIndicatorBackNormal(int indicatorBackNormal) {
+            this.indicatorBackNormal = indicatorBackNormal;
+            return this;
+        }
+
+        public Builder setIndicatorBackSelected(int indicatorBackSelected) {
+            this.indicatorBackSelected = indicatorBackSelected;
+            return this;
+        }
+
+        public Builder setDutationTime(int durationtime) {
+            this.durationtime = durationtime;
+            return this;
+        }
+
+        public Builder setSideBannerAdapter(SideBannerAdapter sideBannerAdapter) {
+            this.sideBannerAdapter = sideBannerAdapter;
+            return this;
+        }
+
+        public SideBanner build(Context context){
+            sideBanner = new SideBanner(context);
+            sideBanner.setSideMode(sideMode);
+            sideBanner.setLoop(loop);
+            sideBanner.setAutoPlay(autoPlay);
+            sideBanner.setIndicator(indicator);
+            sideBanner.setPageMargin(pageMargin);
+            sideBanner.setDotMargin(dotMargin);
+            sideBanner.setIndicatorBackNormal(indicatorBackNormal);
+            sideBanner.setmIndicatorBackSelected(indicatorBackSelected);
+            sideBanner.setBannerScrollerSpeed(durationtime);
+            sideBanner.setSideBannerAdapter(sideBannerAdapter);
+            return sideBanner;
+        }
+    }
+
+
 
 }
